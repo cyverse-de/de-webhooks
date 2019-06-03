@@ -115,6 +115,11 @@ func isNotificationInTopic(msg []byte, topics []string) bool {
 func preparePayloadFromTemplate(templatetext string, msg []byte) *strings.Reader {
 	var buf1 bytes.Buffer
 	var postbody Payload
+	if len(templatetext) == 0 {
+		payload := string(msg)
+		Log.Printf("Empty Template. message to post: %s", payload)
+		return strings.NewReader(payload)
+	}
 	t := template.Must(template.New("newtemplate").Parse(templatetext))
 	w := io.MultiWriter(&buf1)
 	isCompleted := (getType(msg) == "analysis") && isAnalysisCompleted(msg)
