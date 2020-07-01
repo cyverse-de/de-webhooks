@@ -64,12 +64,12 @@ func main() {
 
 	err = ch.ExchangeDeclare(
 		cfg.GetString("amqp.exchange.name"), // name
-		"topic", // type
-		true,    // durable
-		false,   // auto-deleted
-		false,   // internal
-		false,   // no-wait
-		nil,     // arguments
+		"topic",                             // type
+		true,                                // durable
+		false,                               // auto-deleted
+		false,                               // internal
+		false,                               // no-wait
+		nil,                                 // arguments
 	)
 	if err != nil {
 		Log.Fatal(err)
@@ -77,8 +77,8 @@ func main() {
 
 	q, err := ch.QueueDeclare(
 		queuename, // name
-		false,     // durable
-		false,     // delete when usused
+		true,      // durable
+		false,     // delete when unused
 		false,     // exclusive
 		false,     // no-wait
 		nil,       // arguments
@@ -90,7 +90,7 @@ func main() {
 	Log.Printf("Binding queue %s to exchange %s with routing key %s",
 		q.Name, cfg.GetString("amqp.exchange.name"), config.GetString("amqp.routing"))
 	err = ch.QueueBind(
-		q.Name, // queue name
+		q.Name,                              // queue name
 		config.GetString("amqp.routing"),    // routing key
 		cfg.GetString("amqp.exchange.name"), // exchange
 		false,
@@ -118,6 +118,7 @@ func main() {
 	forever := make(chan bool)
 	go func() {
 		ProcessMessages(DBConnection, msgs)
+		Log.Fatal("AMQP connection lost - exiting")
 	}()
 	Log.Print("****Waiting for notifications. Press Ctrl + c to quit!****")
 	<-forever
