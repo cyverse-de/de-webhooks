@@ -23,7 +23,7 @@ COPY . .
 RUN go test ./... && \
     go build .
 
-FROM scratch
+FROM alpine
 
 WORKDIR /app
 
