@@ -1,10 +1,9 @@
-FROM golang:1.11-alpine
+FROM golang:1.16-alpine
 
-COPY . /go/src/github.com/cyverse-de/de-webhooks
+RUN apk add --no-cache git
+RUN go get -u github.com/jstemmer/go-junit-report
+
 ENV CGO_ENABLED=0
-RUN go install -v github.com/cyverse-de/de-webhooks
-
-ENTRYPOINT ["de-webhooks"]
 
 ARG git_commit=unknown
 ARG version="2.9.0"
@@ -17,3 +16,17 @@ LABEL org.cyverse.descriptive-version="$descriptive_version"
 LABEL org.label-schema.vcs-ref="$git_commit"
 LABEL org.label-schema.vcs-url="https://github.com/cyverse-de/de-webhooks"
 LABEL org.label-schema.version="$descriptive_version"
+
+WORKDIR /src/de-webhooks
+
+COPY . .
+RUN go test ./... && \
+    go build .
+
+FROM scratch
+
+WORKDIR /app
+
+COPY --from=0 /src/de-webhooks/de-webhooks /bin/de-webhooks
+
+ENTRYPOINT ["de-webhooks"]
