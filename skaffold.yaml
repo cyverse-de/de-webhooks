@@ -10,5 +10,5 @@ build:
   tagPolicy:
     gitCommit: {}
   artifacts:
-  - image: discoenv/de-webhooks
+  - image: harbor.cyverse.org/de/de-webhooks
   local: {}

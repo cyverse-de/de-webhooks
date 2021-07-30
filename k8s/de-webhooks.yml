@@ -41,7 +41,7 @@ spec:
                 path: webhooks.yml
       containers:
       - name: de-webhooks
-        image: discoenv/de-webhooks
+        image: harbor.cyverse.org/de/de-webhooks
         volumeMounts:
           - name: localtime
             mountPath: /etc/localtime
