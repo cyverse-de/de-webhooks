@@ -8,14 +8,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-//DB is the interface for interacting with the DE database
-type DB interface {
-	getTemplates() (map[string]string, error)
-	getUserInfo(username string) (string, error)
-	getSubscriptions(userid string) ([]Subscription, error)
-	getTopics(webhookid string) ([]string, error)
-}
-
 //Init init database connection
 func Init() *sql.DB {
 	dburi := config.GetString("db.uri")

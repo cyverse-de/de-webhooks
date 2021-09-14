@@ -128,7 +128,10 @@ func preparePayloadFromTemplate(templatetext string, msg []byte) *strings.Reader
 		Type:     getType(msg),
 		Link:     config.GetString("de.base") + "/data/ds" + getResultFolder(msg),
 		LinkText: "Go to results folder in DE", Completed: isCompleted}
-	t.Execute(w, postbody)
+	err := t.Execute(w, postbody)
+	if err != nil {
+		Log.Errorf("Error executing template: %s", err.Error())
+	}
 	Log.Printf("message to post: %s", buf1.String())
 	return strings.NewReader(buf1.String())
 }
