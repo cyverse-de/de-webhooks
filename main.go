@@ -1,20 +1,25 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"flag"
+	"log"
 
 	"github.com/cyverse-de/configurate"
+	"github.com/cyverse-de/go-mod/otelutils"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
 )
 
+const serviceName = "de-webhooks"
+
 //Log define a logrus logger
 var Log = logrus.WithFields(logrus.Fields{
-	"service": "de-webhooks",
-	"art-id":  "de-webhooks",
+	"service": serviceName,
+	"art-id":  serviceName,
 	"group":   "org.cyverse",
 })
 
@@ -37,6 +42,11 @@ func main() {
 	)
 
 	flag.Parse()
+
+	var tracerCtx, cancel = context.WithCancel(context.Background())
+	defer cancel()
+	shutdown := otelutils.TracerProviderFromEnv(tracerCtx, serviceName, func(e error) { log.Fatal(e) })
+	defer shutdown()
 
 	if *cfgPath == "" {
 		Log.Fatal("--config must be set")
