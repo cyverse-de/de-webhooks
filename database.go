@@ -7,6 +7,7 @@ import (
 	"github.com/cyverse-de/dbutil"
 	"github.com/cyverse-de/queries"
 	_ "github.com/lib/pq"
+	"go.opentelemetry.io/otel"
 )
 
 //Init init database connection
@@ -34,6 +35,8 @@ func Init() *sql.DB {
 
 //getTemplates get template for given webhooks type e.g: slack
 func (s *DBConnection) getTemplates(ctx context.Context) (map[string]string, error) {
+	ctx, span := otel.Tracer(otelName).Start(ctx, "getTemplates")
+	defer span.End()
 	var id, temptext string
 	tempmap := make(map[string]string)
 	query := `select id, template from webhooks_type;`
@@ -66,6 +69,8 @@ func (s *DBConnection) getUserInfo(ctx context.Context, username string) (string
 
 //getUserSubscriptions get user subscriptions to webhooks
 func (s *DBConnection) getUserSubscriptions(ctx context.Context, uid string) ([]Subscription, error) {
+	ctx, span := otel.Tracer(otelName).Start(ctx, "getUserSubscriptions")
+	defer span.End()
 	subs := []Subscription{}
 	query := `select id, url, type_id from webhooks where user_id=$1`
 	rows, err := s.db.QueryContext(ctx, query, string(uid))

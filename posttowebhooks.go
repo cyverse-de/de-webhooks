@@ -11,6 +11,7 @@ import (
 
 	"github.com/buger/jsonparser"
 	"github.com/streadway/amqp"
+	"go.opentelemetry.io/otel"
 )
 
 //compltedstatus Analysis completed status
@@ -76,6 +77,8 @@ func getUserID(ctx context.Context, d *DBConnection, msg []byte) string {
 
 //post to webhooks
 func postToHook(ctx context.Context, d *DBConnection, uid string, msg []byte) error {
+	ctx, span := otel.Tracer(otelName).Start(ctx, "postToHook")
+	defer span.End()
 	subs, err := d.getUserSubscriptions(ctx, uid)
 	if err != nil {
 		return err

@@ -16,6 +16,7 @@ import (
 )
 
 const serviceName = "de-webhooks"
+const otelName = "github.com/cyverse-de/de-webhooks"
 
 //Log define a logrus logger
 var Log = logrus.WithFields(logrus.Fields{

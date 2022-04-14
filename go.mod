@@ -14,5 +14,6 @@ require (
 	github.com/spf13/viper v1.4.0
 	github.com/streadway/amqp v1.0.1-0.20200716223359-e6b33f460591
 	github.com/uptrace/opentelemetry-go-extra/otelsql v0.1.12 // indirect
+	go.opentelemetry.io/otel v1.6.3
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )

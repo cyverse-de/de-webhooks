@@ -26,8 +26,6 @@ github.com/cyverse-de/messaging/v9 v9.1.5 h1:OWI2iCKID2ZDFPRFXj8jaiP0Ef/RxQfMNck
 github.com/cyverse-de/messaging/v9 v9.1.5/go.mod h1:bGZRCqilJTPBmWrgsyuupi3KRgkjQNs8yYNxZWZh8DI=
 github.com/cyverse-de/model/v6 v6.0.1 h1:6c0Tkl0hIbaJj7paI872QAPyvX9bhZNH93o37zDZG0s=
 github.com/cyverse-de/model/v6 v6.0.1/go.mod h1:u9qbFn7B6/1HlwwuyVriIxfGy2hh5t9vFB4+k61X7YE=
-github.com/cyverse-de/queries v0.0.0-20170404194852-3e2e4691ef97 h1:os6ruEYEAAbj1wUuvK8V3S9tbd9eDIEriWsjOuEu82E=
-github.com/cyverse-de/queries v0.0.0-20170404194852-3e2e4691ef97/go.mod h1:YVclxEOFHTv0ZnVuJGiWh286GrxesamshwikcifVehA=
 github.com/cyverse-de/queries v1.0.1 h1:xODyzr9I0SMlcMAqSLiXSHn5xqzOoAJXCwILlmOuRHE=
 github.com/cyverse-de/queries v1.0.1/go.mod h1:AzLmCqSmI9iGqiWJi5tzsif2UHIAr3wrleDgQRhmDZk=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
