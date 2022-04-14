@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/cyverse-de/dbutil"
@@ -32,11 +33,11 @@ func Init() *sql.DB {
 }
 
 //getTemplates get template for given webhooks type e.g: slack
-func (s *DBConnection) getTemplates() (map[string]string, error) {
+func (s *DBConnection) getTemplates(ctx context.Context) (map[string]string, error) {
 	var id, temptext string
 	tempmap := make(map[string]string)
 	query := `select id, template from webhooks_type;`
-	rows, err := s.db.Query(query)
+	rows, err := s.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -64,10 +65,10 @@ func (s *DBConnection) getUserInfo(username string) (string, error) {
 }
 
 //getUserSubscriptions get user subscriptions to webhooks
-func (s *DBConnection) getUserSubscriptions(uid string) ([]Subscription, error) {
+func (s *DBConnection) getUserSubscriptions(ctx context.Context, uid string) ([]Subscription, error) {
 	subs := []Subscription{}
 	query := `select id, url, type_id from webhooks where user_id=$1`
-	rows, err := s.db.Query(query, string(uid))
+	rows, err := s.db.QueryContext(ctx, query, string(uid))
 	if err != nil {
 		return subs, err
 	}
@@ -78,7 +79,7 @@ func (s *DBConnection) getUserSubscriptions(uid string) ([]Subscription, error) 
 		if err != nil {
 			return subs, err
 		}
-		topics, err := s.getTopics(sub.id)
+		topics, err := s.getTopics(ctx, sub.id)
 		if err != nil {
 			return subs, err
 		}
@@ -92,14 +93,14 @@ func (s *DBConnection) getUserSubscriptions(uid string) ([]Subscription, error) 
 	return subs, nil
 }
 
-func (s *DBConnection) getTopics(id string) ([]string, error) {
+func (s *DBConnection) getTopics(ctx context.Context, id string) ([]string, error) {
 	topics := []string{}
 
 	topicsquery := `select wt.topic from webhooks_topic as wt
 	join webhooks_subscription as ws on wt.id = ws.topic_id
 	where ws.webhook_id =$1`
 
-	rows, err := s.db.Query(topicsquery, string(id))
+	rows, err := s.db.QueryContext(ctx, topicsquery, string(id))
 	if err != nil {
 		return topics, err
 	}

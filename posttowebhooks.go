@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"strings"
@@ -32,8 +33,9 @@ var templatesmap map[string]string
 
 //ProcessMessages process the received message for post to webhooks
 func ProcessMessages(d *DBConnection, msgs <-chan amqp.Delivery) {
+	ctx := context.Background()
 	if templatesmap == nil { // call only when template cache is not ready
-		temmap, err := d.getTemplates()
+		temmap, err := d.getTemplates(ctx)
 		if err != nil {
 			Log.Error(err)
 			return
@@ -41,10 +43,11 @@ func ProcessMessages(d *DBConnection, msgs <-chan amqp.Delivery) {
 		templatesmap = temmap
 	}
 	for delivery := range msgs {
+		msgCtx := context.Background()
 		Log.Printf("[X] Notification %s", delivery.Body)
 		uid := getUserID(d, delivery.Body)
 		if uid != "" {
-			postToHook(d, uid, delivery.Body)
+			postToHook(msgCtx, d, uid, delivery.Body)
 		} else {
 			Log.Error("User not found!")
 		}
@@ -68,8 +71,8 @@ func getUserID(d *DBConnection, msg []byte) string {
 }
 
 //post to webhooks
-func postToHook(d *DBConnection, uid string, msg []byte) {
-	subs, err := d.getUserSubscriptions(uid)
+func postToHook(ctx context.Context, d *DBConnection, uid string, msg []byte) {
+	subs, err := d.getUserSubscriptions(ctx, uid)
 	if err != nil {
 		Log.Error(err)
 		return
