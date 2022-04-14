@@ -56,8 +56,8 @@ func (s *DBConnection) getTemplates(ctx context.Context) (map[string]string, err
 }
 
 //getUserInfo get User id for given user name
-func (s *DBConnection) getUserInfo(username string) (string, error) {
-	userID, err := queries.UserID(s.db, username)
+func (s *DBConnection) getUserInfo(ctx context.Context, username string) (string, error) {
+	userID, err := queries.UserID(ctx, s.db, username)
 	if err != nil {
 		return "", err
 	}

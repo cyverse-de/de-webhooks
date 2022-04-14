@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -31,38 +32,41 @@ type Subscription struct {
 //template cache
 var templatesmap map[string]string
 
-//ProcessMessages process the received message for post to webhooks
-func ProcessMessages(d *DBConnection, msgs <-chan amqp.Delivery) {
-	ctx := context.Background()
-	if templatesmap == nil { // call only when template cache is not ready
-		temmap, err := d.getTemplates(ctx)
-		if err != nil {
-			Log.Error(err)
-			return
-		}
-		templatesmap = temmap
+func InitTemplatesMap(ctx context.Context, d *DBConnection) error {
+	temmap, err := d.getTemplates(ctx)
+	if err != nil {
+		return err
 	}
-	for delivery := range msgs {
-		msgCtx := context.Background()
-		Log.Printf("[X] Notification %s", delivery.Body)
-		uid := getUserID(d, delivery.Body)
-		if uid != "" {
-			postToHook(msgCtx, d, uid, delivery.Body)
-		} else {
-			Log.Error("User not found!")
+	templatesmap = temmap
+	return nil
+}
+
+//ProcessMessages process the received message for post to webhooks
+func ProcessMessage(ctx context.Context, d *DBConnection, del amqp.Delivery) error {
+	if templatesmap == nil { // call only when template cache is not ready
+		err := InitTemplatesMap(ctx, d)
+		if err != nil {
+			return err
 		}
+	}
+	Log.Printf("[X] Notification %s", del.Body)
+	uid := getUserID(ctx, d, del.Body)
+	if uid != "" {
+		return postToHook(ctx, d, uid, del.Body)
+	} else {
+		return errors.New("User not found")
 	}
 }
 
 //getUserID Get user id for this Notification
-func getUserID(d *DBConnection, msg []byte) string {
+func getUserID(ctx context.Context, d *DBConnection, msg []byte) string {
 	value, _, _, err := jsonparser.Get(msg, "message", "user")
 	if err != nil {
 		Log.Error(err)
 		return ""
 	}
 	Log.Printf("user is %s", string(value))
-	uid, err := d.getUserInfo(string(value) + "@" + config.GetString("user.suffix"))
+	uid, err := d.getUserInfo(ctx, string(value)+"@"+config.GetString("user.suffix"))
 	if err != nil {
 		Log.Error(err)
 		return ""
@@ -71,11 +75,10 @@ func getUserID(d *DBConnection, msg []byte) string {
 }
 
 //post to webhooks
-func postToHook(ctx context.Context, d *DBConnection, uid string, msg []byte) {
+func postToHook(ctx context.Context, d *DBConnection, uid string, msg []byte) error {
 	subs, err := d.getUserSubscriptions(ctx, uid)
 	if err != nil {
-		Log.Error(err)
-		return
+		return err
 	}
 	Log.Printf("No. of subscriptions found: %d", len(subs))
 	if len(subs) > 0 {
@@ -89,6 +92,7 @@ func postToHook(ctx context.Context, d *DBConnection, uid string, msg []byte) {
 			}
 		}
 	}
+	return nil
 }
 
 //isNotificationInTopic check if user is subscribed to this notification topic
