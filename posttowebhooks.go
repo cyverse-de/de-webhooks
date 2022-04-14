@@ -11,12 +11,15 @@ import (
 
 	"github.com/buger/jsonparser"
 	"github.com/streadway/amqp"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 )
 
 //compltedstatus Analysis completed status
 const compltedstatus = "Completed"
 const failedstatus = "Failed"
+
+var httpClient = http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
 
 //Payload payload to post to the webhooks
 type Payload struct {
@@ -87,7 +90,13 @@ func postToHook(ctx context.Context, d *DBConnection, uid string, msg []byte) er
 	if len(subs) > 0 {
 		for _, v := range subs {
 			if isNotificationInTopic(msg, v.topics) {
-				resp, err := http.Post(v.url, "application/json", preparePayloadFromTemplate(templatesmap[v.templatetype], msg))
+				payload := preparePayloadFromTemplate(ctx, templatesmap[v.templatetype], msg)
+				req, err := http.NewRequestWithContext(ctx, http.MethodPost, v.url, payload)
+				if err != nil {
+					Log.Printf("Error posting to hook %s", err)
+				}
+				req.Header.Set("content-type", "application/json")
+				resp, err := httpClient.Do(req)
 				if err != nil {
 					Log.Printf("Error posting to hook %s", err)
 				}
@@ -121,7 +130,9 @@ func isNotificationInTopic(msg []byte, topics []string) bool {
 }
 
 //Prepare payload from template
-func preparePayloadFromTemplate(templatetext string, msg []byte) *strings.Reader {
+func preparePayloadFromTemplate(ctx context.Context, templatetext string, msg []byte) *strings.Reader {
+	_, span := otel.Tracer(otelName).Start(ctx, "preparePayloadFromTemplate")
+	defer span.End()
 	var buf1 bytes.Buffer
 	var postbody Payload
 	if len(templatetext) == 0 {
