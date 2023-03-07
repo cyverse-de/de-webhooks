@@ -3,7 +3,7 @@ module github.com/cyverse-de/de-webhooks
 go 1.16
 
 require (
-	github.com/buger/jsonparser v0.0.0-20170803100442-fda8192cc4f1
+	github.com/buger/jsonparser v1.1.1
 	github.com/cyverse-de/configurate v0.0.0-20190318152107-8f767cb828d9
 	github.com/cyverse-de/dbutil v1.0.1
 	github.com/cyverse-de/go-mod/otelutils v0.0.2
