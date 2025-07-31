@@ -1,6 +1,4 @@
-FROM golang:1.21-alpine
-
-RUN apk add --no-cache git
+FROM golang:1.21
 
 ENV CGO_ENABLED=0
 
@@ -22,7 +20,7 @@ COPY . .
 RUN go test ./... && \
     go build .
 
-FROM alpine
+FROM debian:stable-slim
 
 WORKDIR /app
 
