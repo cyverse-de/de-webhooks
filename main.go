@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"flag"
+	"io"
 	"log"
 
 	"github.com/cyverse-de/configurate"
@@ -70,7 +71,7 @@ func main() {
 	go client.Listen()
 
 	DBConnection := NewDBConnection(Init())
-	defer DBConnection.db.Close()
+	defer closeAndLog(DBConnection.db, "db")
 
 	client.AddConsumerMulti(
 		cfg.GetString("amqp.exchange.name"),
@@ -103,5 +104,14 @@ func main() {
 func NewDBConnection(db *sql.DB) *DBConnection {
 	return &DBConnection{
 		db: db,
+	}
+}
+
+//closeAndLog closes c and logs any error with the given label for context.
+//Intended for use with `defer` on resources whose Close error would otherwise
+//be silently dropped (sql.Rows, sql.DB, http.Response.Body).
+func closeAndLog(c io.Closer, what string) {
+	if err := c.Close(); err != nil {
+		Log.Errorf("error closing %s: %s", what, err)
 	}
 }

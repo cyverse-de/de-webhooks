@@ -44,7 +44,7 @@ func (s *DBConnection) getTemplates(ctx context.Context) (map[string]string, err
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer closeAndLog(rows, "rows")
 	for rows.Next() {
 		err := rows.Scan(&id, &temptext)
 		if err != nil {
@@ -77,7 +77,7 @@ func (s *DBConnection) getUserSubscriptions(ctx context.Context, uid string) ([]
 	if err != nil {
 		return subs, err
 	}
-	defer rows.Close()
+	defer closeAndLog(rows, "rows")
 	for rows.Next() {
 		var sub Subscription
 		err := rows.Scan(&sub.id, &sub.url, &sub.templatetype)
@@ -109,7 +109,7 @@ func (s *DBConnection) getTopics(ctx context.Context, id string) ([]string, erro
 	if err != nil {
 		return topics, err
 	}
-	defer rows.Close()
+	defer closeAndLog(rows, "rows")
 	for rows.Next() {
 		var tp string
 		err := rows.Scan(&tp)

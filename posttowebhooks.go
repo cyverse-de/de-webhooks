@@ -58,7 +58,7 @@ func ProcessMessage(ctx context.Context, d *DBConnection, del amqp.Delivery) err
 	if uid != "" {
 		return postToHook(ctx, d, uid, del.Body)
 	} else {
-		return errors.New("User not found")
+		return errors.New("user not found")
 	}
 }
 
@@ -99,8 +99,9 @@ func postToHook(ctx context.Context, d *DBConnection, uid string, msg []byte) er
 				resp, err := httpClient.Do(req)
 				if err != nil {
 					Log.Printf("Error posting to hook %s", err)
+					continue
 				}
-				defer resp.Body.Close()
+				defer closeAndLog(resp.Body, "response body")
 			}
 		}
 	}
