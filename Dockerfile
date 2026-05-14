@@ -1,4 +1,4 @@
-FROM golang:1.25
+FROM golang:1.26
 
 ENV CGO_ENABLED=0
 
@@ -20,10 +20,10 @@ COPY . .
 RUN go test ./... && \
     go build .
 
-FROM debian:stable-slim
+FROM gcr.io/distroless/static-debian13:nonroot
 
 WORKDIR /app
 
 COPY --from=0 /src/de-webhooks/de-webhooks /bin/de-webhooks
 
-ENTRYPOINT ["de-webhooks"]
+ENTRYPOINT ["/bin/de-webhooks"]
