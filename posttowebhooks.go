@@ -10,7 +10,7 @@ import (
 	"text/template"
 
 	"github.com/buger/jsonparser"
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 )

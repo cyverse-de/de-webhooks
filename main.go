@@ -8,11 +8,11 @@ import (
 
 	"github.com/cyverse-de/configurate"
 	"github.com/cyverse-de/go-mod/otelutils"
-	"github.com/cyverse-de/messaging/v9"
+	"github.com/cyverse-de/messaging/v12"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 const serviceName = "de-webhooks"
