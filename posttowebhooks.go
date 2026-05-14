@@ -15,25 +15,25 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-//compltedstatus Analysis completed status
+// compltedstatus Analysis completed status
 const compltedstatus = "Completed"
 const failedstatus = "Failed"
 
 var httpClient = http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
 
-//Payload payload to post to the webhooks
+// Payload payload to post to the webhooks
 type Payload struct {
 	ID, Name, Msg, Link, LinkText, Type string
 	Completed                           bool
 }
 
-//Subscription defines user subscriptions to webhooks
+// Subscription defines user subscriptions to webhooks
 type Subscription struct {
 	id, templatetype, url string
 	topics                []string
 }
 
-//template cache
+// template cache
 var templatesmap map[string]string
 
 func InitTemplatesMap(ctx context.Context, d *DBConnection) error {
@@ -45,7 +45,7 @@ func InitTemplatesMap(ctx context.Context, d *DBConnection) error {
 	return nil
 }
 
-//ProcessMessages process the received message for post to webhooks
+// ProcessMessages process the received message for post to webhooks
 func ProcessMessage(ctx context.Context, d *DBConnection, del amqp.Delivery) error {
 	if templatesmap == nil { // call only when template cache is not ready
 		err := InitTemplatesMap(ctx, d)
@@ -62,7 +62,7 @@ func ProcessMessage(ctx context.Context, d *DBConnection, del amqp.Delivery) err
 	}
 }
 
-//getUserID Get user id for this Notification
+// getUserID Get user id for this Notification
 func getUserID(ctx context.Context, d *DBConnection, msg []byte) string {
 	value, _, _, err := jsonparser.Get(msg, "message", "user")
 	if err != nil {
@@ -78,7 +78,7 @@ func getUserID(ctx context.Context, d *DBConnection, msg []byte) string {
 	return uid
 }
 
-//post to webhooks
+// post to webhooks
 func postToHook(ctx context.Context, d *DBConnection, uid string, msg []byte) error {
 	ctx, span := otel.Tracer(otelName).Start(ctx, "postToHook")
 	defer span.End()
@@ -108,7 +108,7 @@ func postToHook(ctx context.Context, d *DBConnection, uid string, msg []byte) er
 	return nil
 }
 
-//isNotificationInTopic check if user is subscribed to this notification topic
+// isNotificationInTopic check if user is subscribed to this notification topic
 func isNotificationInTopic(msg []byte, topics []string) bool {
 	value, _, _, err := jsonparser.Get(msg, "message", "type")
 	if err != nil {
@@ -130,7 +130,7 @@ func isNotificationInTopic(msg []byte, topics []string) bool {
 
 }
 
-//Prepare payload from template
+// Prepare payload from template
 func preparePayloadFromTemplate(ctx context.Context, templatetext string, msg []byte) *strings.Reader {
 	_, span := otel.Tracer(otelName).Start(ctx, "preparePayloadFromTemplate")
 	defer span.End()
@@ -158,7 +158,7 @@ func preparePayloadFromTemplate(ctx context.Context, templatetext string, msg []
 	return strings.NewReader(buf1.String())
 }
 
-//check if it is an analysis notification
+// check if it is an analysis notification
 func getType(msg []byte) string {
 	value, _, _, err := jsonparser.Get(msg, "message", "type")
 	if err != nil {
@@ -168,7 +168,7 @@ func getType(msg []byte) string {
 	return string(value)
 }
 
-//check if the analysis is completed
+// check if the analysis is completed
 func isAnalysisCompleted(msg []byte) bool {
 	Log.Printf("Getting analysis status")
 	value, _, _, err := jsonparser.Get(msg, "message", "payload", "analysisstatus")
@@ -182,7 +182,7 @@ func isAnalysisCompleted(msg []byte) bool {
 	return false
 }
 
-//get analysis result folder
+// get analysis result folder
 func getResultFolder(msg []byte) string {
 	Log.Printf("Getting result folder")
 	value, _, _, err := jsonparser.Get(msg, "message", "payload", "analysisresultsfolder")
@@ -193,7 +193,7 @@ func getResultFolder(msg []byte) string {
 	return string(value)
 }
 
-//get message from notfication
+// get message from notfication
 func getMessage(msg []byte) string {
 	value, _, _, err := jsonparser.Get(msg, "message", "message", "text")
 	if err != nil {
@@ -204,7 +204,7 @@ func getMessage(msg []byte) string {
 	return string(value)
 }
 
-//get id from notification
+// get id from notification
 func getID(msg []byte) string {
 	value, _, _, err := jsonparser.Get(msg, "message", "payload", "app_id")
 	if err != nil {
@@ -215,7 +215,7 @@ func getID(msg []byte) string {
 	return string(value)
 }
 
-//get name from notification
+// get name from notification
 func getName(msg []byte) string {
 	value, _, _, err := jsonparser.Get(msg, "message", "payload", "name")
 	if err != nil {

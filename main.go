@@ -19,19 +19,19 @@ import (
 const serviceName = "de-webhooks"
 const otelName = "github.com/cyverse-de/de-webhooks"
 
-//Log define a logrus logger
+// Log define a logrus logger
 var Log = logrus.WithFields(logrus.Fields{
 	"service": serviceName,
 	"art-id":  serviceName,
 	"group":   "org.cyverse",
 })
 
-//DBConnection db connection to DE database
+// DBConnection db connection to DE database
 type DBConnection struct {
 	db *sql.DB
 }
 
-//Queue name
+// Queue name
 const queuename = "notification-queue"
 
 var config *viper.Viper
@@ -100,16 +100,16 @@ func main() {
 	<-forever
 }
 
-//NewDBConnection makes a new DBConnection
+// NewDBConnection makes a new DBConnection
 func NewDBConnection(db *sql.DB) *DBConnection {
 	return &DBConnection{
 		db: db,
 	}
 }
 
-//closeAndLog closes c and logs any error with the given label for context.
-//Intended for use with `defer` on resources whose Close error would otherwise
-//be silently dropped (sql.Rows, sql.DB, http.Response.Body).
+// closeAndLog closes c and logs any error with the given label for context.
+// Intended for use with `defer` on resources whose Close error would otherwise
+// be silently dropped (sql.Rows, sql.DB, http.Response.Body).
 func closeAndLog(c io.Closer, what string) {
 	if err := c.Close(); err != nil {
 		Log.Errorf("error closing %s: %s", what, err)

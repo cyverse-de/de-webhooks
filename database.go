@@ -10,7 +10,7 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-//Init init database connection
+// Init init database connection
 func Init() *sql.DB {
 	dburi := config.GetString("db.uri")
 	connector, err := dbutil.NewDefaultConnector("1m")
@@ -33,7 +33,7 @@ func Init() *sql.DB {
 	return db
 }
 
-//getTemplates get template for given webhooks type e.g: slack
+// getTemplates get template for given webhooks type e.g: slack
 func (s *DBConnection) getTemplates(ctx context.Context) (map[string]string, error) {
 	ctx, span := otel.Tracer(otelName).Start(ctx, "getTemplates")
 	defer span.End()
@@ -58,7 +58,7 @@ func (s *DBConnection) getTemplates(ctx context.Context) (map[string]string, err
 	return tempmap, nil
 }
 
-//getUserInfo get User id for given user name
+// getUserInfo get User id for given user name
 func (s *DBConnection) getUserInfo(ctx context.Context, username string) (string, error) {
 	userID, err := queries.UserID(ctx, s.db, username)
 	if err != nil {
@@ -67,7 +67,7 @@ func (s *DBConnection) getUserInfo(ctx context.Context, username string) (string
 	return userID, nil
 }
 
-//getUserSubscriptions get user subscriptions to webhooks
+// getUserSubscriptions get user subscriptions to webhooks
 func (s *DBConnection) getUserSubscriptions(ctx context.Context, uid string) ([]Subscription, error) {
 	ctx, span := otel.Tracer(otelName).Start(ctx, "getUserSubscriptions")
 	defer span.End()
