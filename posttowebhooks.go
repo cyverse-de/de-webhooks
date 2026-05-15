@@ -78,9 +78,10 @@ func getUserID(ctx context.Context, d *DBConnection, msg []byte) string {
 	return uid
 }
 
-// post to webhooks
+// postToMatchingWebhooks searches the user's webhook subscriptions and posts the message to any subscription that
+// matches.
 func postToMatchingWebhooks(ctx context.Context, d *DBConnection, uid string, msg []byte) error {
-	ctx, span := otel.Tracer(otelName).Start(ctx, "postToHook")
+	ctx, span := otel.Tracer(otelName).Start(ctx, "postToMatchingWebhooks")
 	defer span.End()
 	subs, err := d.getUserSubscriptions(ctx, uid)
 	if err != nil {
@@ -90,26 +91,32 @@ func postToMatchingWebhooks(ctx context.Context, d *DBConnection, uid string, ms
 	if len(subs) > 0 {
 		for _, sub := range subs {
 			if isNotificationInTopic(msg, sub.topics) {
-				postToWebhook(ctx, sub, msg)
+				err = postToWebhook(ctx, sub, msg)
+				if err != nil {
+					Log.Printf("unable to post to webhook: %v", err)
+				}
 			}
 		}
 	}
 	return nil
 }
 
-func postToWebhook(ctx context.Context, sub Subscription, msg []byte) {
+// postToWebhook posts a message to a single webhook
+func postToWebhook(ctx context.Context, sub Subscription, msg []byte) error {
+	ctx, span := otel.Tracer(otelName).Start(ctx, "postToWebhook")
+	defer span.End()
 	payload := preparePayloadFromTemplate(ctx, templatesmap[sub.templatetype], msg)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, sub.url, payload)
 	if err != nil {
-		Log.Printf("Error posting to hook %s", err)
-		return
+		return err
 	}
 	req.Header.Set("content-type", "application/json")
 	resp, err := httpClient.Do(req)
-	defer closeAndLog(resp.Body, "response body")
 	if err != nil {
-		Log.Printf("Error posting to hook %s", err)
+		return err
 	}
+	defer closeAndLog(resp.Body, "response body")
+	return nil
 }
 
 // isNotificationInTopic check if user is subscribed to this notification topic
