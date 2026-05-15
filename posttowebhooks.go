@@ -10,30 +10,30 @@ import (
 	"text/template"
 
 	"github.com/buger/jsonparser"
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 )
 
-//compltedstatus Analysis completed status
+// compltedstatus Analysis completed status
 const compltedstatus = "Completed"
 const failedstatus = "Failed"
 
 var httpClient = http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
 
-//Payload payload to post to the webhooks
+// Payload payload to post to the webhooks
 type Payload struct {
 	ID, Name, Msg, Link, LinkText, Type string
 	Completed                           bool
 }
 
-//Subscription defines user subscriptions to webhooks
+// Subscription defines user subscriptions to webhooks
 type Subscription struct {
 	id, templatetype, url string
 	topics                []string
 }
 
-//template cache
+// template cache
 var templatesmap map[string]string
 
 func InitTemplatesMap(ctx context.Context, d *DBConnection) error {
@@ -45,7 +45,7 @@ func InitTemplatesMap(ctx context.Context, d *DBConnection) error {
 	return nil
 }
 
-//ProcessMessages process the received message for post to webhooks
+// ProcessMessages process the received message for post to webhooks
 func ProcessMessage(ctx context.Context, d *DBConnection, del amqp.Delivery) error {
 	if templatesmap == nil { // call only when template cache is not ready
 		err := InitTemplatesMap(ctx, d)
@@ -56,13 +56,13 @@ func ProcessMessage(ctx context.Context, d *DBConnection, del amqp.Delivery) err
 	Log.Printf("[X] Notification %s", del.Body)
 	uid := getUserID(ctx, d, del.Body)
 	if uid != "" {
-		return postToHook(ctx, d, uid, del.Body)
+		return postToMatchingWebhooks(ctx, d, uid, del.Body)
 	} else {
-		return errors.New("User not found")
+		return errors.New("user not found")
 	}
 }
 
-//getUserID Get user id for this Notification
+// getUserID Get user id for this Notification
 func getUserID(ctx context.Context, d *DBConnection, msg []byte) string {
 	value, _, _, err := jsonparser.Get(msg, "message", "user")
 	if err != nil {
@@ -78,9 +78,10 @@ func getUserID(ctx context.Context, d *DBConnection, msg []byte) string {
 	return uid
 }
 
-//post to webhooks
-func postToHook(ctx context.Context, d *DBConnection, uid string, msg []byte) error {
-	ctx, span := otel.Tracer(otelName).Start(ctx, "postToHook")
+// postToMatchingWebhooks searches the user's webhook subscriptions and posts the message to any subscription that
+// matches.
+func postToMatchingWebhooks(ctx context.Context, d *DBConnection, uid string, msg []byte) error {
+	ctx, span := otel.Tracer(otelName).Start(ctx, "postToMatchingWebhooks")
 	defer span.End()
 	subs, err := d.getUserSubscriptions(ctx, uid)
 	if err != nil {
@@ -88,26 +89,37 @@ func postToHook(ctx context.Context, d *DBConnection, uid string, msg []byte) er
 	}
 	Log.Printf("No. of subscriptions found: %d", len(subs))
 	if len(subs) > 0 {
-		for _, v := range subs {
-			if isNotificationInTopic(msg, v.topics) {
-				payload := preparePayloadFromTemplate(ctx, templatesmap[v.templatetype], msg)
-				req, err := http.NewRequestWithContext(ctx, http.MethodPost, v.url, payload)
+		for _, sub := range subs {
+			if isNotificationInTopic(msg, sub.topics) {
+				err = postToWebhook(ctx, sub, msg)
 				if err != nil {
-					Log.Printf("Error posting to hook %s", err)
+					Log.Printf("unable to post to webhook: %v", err)
 				}
-				req.Header.Set("content-type", "application/json")
-				resp, err := httpClient.Do(req)
-				if err != nil {
-					Log.Printf("Error posting to hook %s", err)
-				}
-				defer resp.Body.Close()
 			}
 		}
 	}
 	return nil
 }
 
-//isNotificationInTopic check if user is subscribed to this notification topic
+// postToWebhook posts a message to a single webhook
+func postToWebhook(ctx context.Context, sub Subscription, msg []byte) error {
+	ctx, span := otel.Tracer(otelName).Start(ctx, "postToWebhook")
+	defer span.End()
+	payload := preparePayloadFromTemplate(ctx, templatesmap[sub.templatetype], msg)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, sub.url, payload)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("content-type", "application/json")
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer closeAndLog(resp.Body, "response body")
+	return nil
+}
+
+// isNotificationInTopic check if user is subscribed to this notification topic
 func isNotificationInTopic(msg []byte, topics []string) bool {
 	value, _, _, err := jsonparser.Get(msg, "message", "type")
 	if err != nil {
@@ -129,7 +141,7 @@ func isNotificationInTopic(msg []byte, topics []string) bool {
 
 }
 
-//Prepare payload from template
+// Prepare payload from template
 func preparePayloadFromTemplate(ctx context.Context, templatetext string, msg []byte) *strings.Reader {
 	_, span := otel.Tracer(otelName).Start(ctx, "preparePayloadFromTemplate")
 	defer span.End()
@@ -157,7 +169,7 @@ func preparePayloadFromTemplate(ctx context.Context, templatetext string, msg []
 	return strings.NewReader(buf1.String())
 }
 
-//check if it is an analysis notification
+// check if it is an analysis notification
 func getType(msg []byte) string {
 	value, _, _, err := jsonparser.Get(msg, "message", "type")
 	if err != nil {
@@ -167,7 +179,7 @@ func getType(msg []byte) string {
 	return string(value)
 }
 
-//check if the analysis is completed
+// check if the analysis is completed
 func isAnalysisCompleted(msg []byte) bool {
 	Log.Printf("Getting analysis status")
 	value, _, _, err := jsonparser.Get(msg, "message", "payload", "analysisstatus")
@@ -181,7 +193,7 @@ func isAnalysisCompleted(msg []byte) bool {
 	return false
 }
 
-//get analysis result folder
+// get analysis result folder
 func getResultFolder(msg []byte) string {
 	Log.Printf("Getting result folder")
 	value, _, _, err := jsonparser.Get(msg, "message", "payload", "analysisresultsfolder")
@@ -192,7 +204,7 @@ func getResultFolder(msg []byte) string {
 	return string(value)
 }
 
-//get message from notfication
+// get message from notfication
 func getMessage(msg []byte) string {
 	value, _, _, err := jsonparser.Get(msg, "message", "message", "text")
 	if err != nil {
@@ -203,7 +215,7 @@ func getMessage(msg []byte) string {
 	return string(value)
 }
 
-//get id from notification
+// get id from notification
 func getID(msg []byte) string {
 	value, _, _, err := jsonparser.Get(msg, "message", "payload", "app_id")
 	if err != nil {
@@ -214,7 +226,7 @@ func getID(msg []byte) string {
 	return string(value)
 }
 
-//get name from notification
+// get name from notification
 func getName(msg []byte) string {
 	value, _, _, err := jsonparser.Get(msg, "message", "payload", "name")
 	if err != nil {
