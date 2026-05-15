@@ -11,9 +11,9 @@ import (
 	"github.com/cyverse-de/go-mod/otelutils"
 	"github.com/cyverse-de/messaging/v12"
 	_ "github.com/lib/pq"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 const serviceName = "de-webhooks"
@@ -112,6 +112,6 @@ func NewDBConnection(db *sql.DB) *DBConnection {
 // be silently dropped (sql.Rows, sql.DB, http.Response.Body).
 func closeAndLog(c io.Closer, what string) {
 	if err := c.Close(); err != nil {
-		Log.Errorf("error closing %s: %s", what, err)
+		Log.Errorf("error closing %s: %v", what, err)
 	}
 }

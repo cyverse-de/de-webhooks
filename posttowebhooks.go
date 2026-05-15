@@ -56,7 +56,7 @@ func ProcessMessage(ctx context.Context, d *DBConnection, del amqp.Delivery) err
 	Log.Printf("[X] Notification %s", del.Body)
 	uid := getUserID(ctx, d, del.Body)
 	if uid != "" {
-		return postToHook(ctx, d, uid, del.Body)
+		return postToMatchingWebhooks(ctx, d, uid, del.Body)
 	} else {
 		return errors.New("user not found")
 	}
@@ -79,7 +79,7 @@ func getUserID(ctx context.Context, d *DBConnection, msg []byte) string {
 }
 
 // post to webhooks
-func postToHook(ctx context.Context, d *DBConnection, uid string, msg []byte) error {
+func postToMatchingWebhooks(ctx context.Context, d *DBConnection, uid string, msg []byte) error {
 	ctx, span := otel.Tracer(otelName).Start(ctx, "postToHook")
 	defer span.End()
 	subs, err := d.getUserSubscriptions(ctx, uid)
@@ -88,24 +88,28 @@ func postToHook(ctx context.Context, d *DBConnection, uid string, msg []byte) er
 	}
 	Log.Printf("No. of subscriptions found: %d", len(subs))
 	if len(subs) > 0 {
-		for _, v := range subs {
-			if isNotificationInTopic(msg, v.topics) {
-				payload := preparePayloadFromTemplate(ctx, templatesmap[v.templatetype], msg)
-				req, err := http.NewRequestWithContext(ctx, http.MethodPost, v.url, payload)
-				if err != nil {
-					Log.Printf("Error posting to hook %s", err)
-				}
-				req.Header.Set("content-type", "application/json")
-				resp, err := httpClient.Do(req)
-				if err != nil {
-					Log.Printf("Error posting to hook %s", err)
-					continue
-				}
-				defer closeAndLog(resp.Body, "response body")
+		for _, sub := range subs {
+			if isNotificationInTopic(msg, sub.topics) {
+				postToWebhook(ctx, sub, msg)
 			}
 		}
 	}
 	return nil
+}
+
+func postToWebhook(ctx context.Context, sub Subscription, msg []byte) {
+	payload := preparePayloadFromTemplate(ctx, templatesmap[sub.templatetype], msg)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, sub.url, payload)
+	if err != nil {
+		Log.Printf("Error posting to hook %s", err)
+		return
+	}
+	req.Header.Set("content-type", "application/json")
+	resp, err := httpClient.Do(req)
+	defer closeAndLog(resp.Body, "response body")
+	if err != nil {
+		Log.Printf("Error posting to hook %s", err)
+	}
 }
 
 // isNotificationInTopic check if user is subscribed to this notification topic
