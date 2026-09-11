@@ -10,7 +10,7 @@ require (
 	github.com/cyverse-de/messaging/v12 v12.0.1
 	github.com/cyverse-de/queries v1.0.1
 	github.com/lib/pq v1.10.9
-	github.com/rabbitmq/amqp091-go v1.11.0
+	github.com/rabbitmq/amqp091-go v1.13.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/viper v1.21.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.68.0
